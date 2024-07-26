@@ -7,12 +7,6 @@ import miniJava.CodeGeneration.x64.*;
 import miniJava.CodeGeneration.x64.ISA.*;
 
 public class CodeGenerator implements Visitor<Object, Object> {
-	private ErrorReporter _errors;
-	private InstructionList _asm; // our list of instructions that are used to make the code section
-	
-	public CodeGenerator(ErrorReporter errors) {
-		this._errors = errors;
-	}
 	private Instruction _mallocFn; // at what instruction does the mallocFn start?
 	private Instruction _freeFn; // at what instruction does the freeFn start?
 	private InstructionList _asm; // our list of instructions that are used to make the code section
@@ -24,7 +18,13 @@ public class CodeGenerator implements Visitor<Object, Object> {
 	private final boolean _outputAssembly = false; // debug output
 	private int _staticSize; // size of the static segment
 	private Stack<Integer> _blockStackSize; // used to make and remove stack space for locals
-	public void parse(Package prog) {
+
+	public CodeGenerator(ErrorReporter errors) {
+		this._errors = errors;
+	}
+
+	@Override
+	public Object visitPackage(Package prog, Object arg) {
 		// first, find the number of static variables we got
 		//  also set the base offset for non-static variables
 		_staticSize = 0;
@@ -116,6 +116,12 @@ public class CodeGenerator implements Visitor<Object, Object> {
 		return null;
 	}
 
+	public void makeElf(String fname) {
+		ELFMaker elf = new ELFMaker(_errors, _asm.getSize(), _staticSize + 8);
+		elf.outputELF(fname, _asm.getBytes(), (long)_mainAddress);
+	}
+
+	@Override
 	public Object visitClassDecl(ClassDecl cd, Object arg) {
 		_currentClass = cd;
 
